@@ -10,8 +10,8 @@ def place_order(direction, qty, df, tp, sl):
         direction,
         qty,
         limitPrice=df.close.iloc[-1],
-        takeProfitPrice=tp,
-        stopLossPrice=sl,
+        takeProfitPrice=round(tp, 2),
+        stopLossPrice=round(sl, 2),
     )
 
     for ord in bracket_order:
@@ -22,7 +22,10 @@ def on_new_bar(bars: BarDataList, has_new_bar: bool):
     if has_new_bar:
         df = util.df(data)
         sma = df.close.tail(50).mean()
-        std_dev = df.close.tail(50).std() * 3
+        std_dev = df.close.tail(50).std() * 1
+
+        print(sma)
+        print(std_dev)
 
         # Check if we are in a trade
         if contract not in [i.contract for i in ib.positions()]:
@@ -31,24 +34,28 @@ def on_new_bar(bars: BarDataList, has_new_bar: bool):
             if df.close.iloc[-1] > sma + std_dev:
                 # Trading more than 3 standard deviations above average - SELL
                 place_order('SELL', 1, df, sma, sma + std_dev * 2)
+                raise SystemExit
 
             elif df.close.iloc[-1] < sma - std_dev:
                 # Trading more than 3 standard deviations below average - BUY
                 place_order('BUY', 1, df, sma,  sma - std_dev * 2)
+                raise SystemExit
+
 
 
 # Create Contract
-contract = ContFuture('HE', 'GLOBEX')
+# contract = ContFuture('HE', 'GLOBEX')
+contract = Stock('qqq', 'SMART', "USD")
 ib.qualifyContracts(contract)
 
 # Request Streaming bars
 data = ib.reqHistoricalData(
     contract,
     endDateTime='',
-    durationStr='2 D',
-    barSizeSetting='15 mins',
+    durationStr='1 D',
+    barSizeSetting='30 secs',
     whatToShow='MIDPOINT',
-    useRTH=True,
+    useRTH=False,
     keepUpToDate=True,
 )
 
